@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>LED Room Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+                  url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><rect fill="%231a1a2e" width="1200" height="800"/><rect fill="%23162447" x="0" y="400" width="1200" height="400"/></svg>');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* --- สไตล์ของหน้า Dashboard (Grid) --- */
+    #dashboard {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      z-index: 1;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .cards-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 25px;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* --- สไตล์การ์ด --- */
+    .led-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      padding: 40px;
+      border-radius: 30px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      width: 350px;
+      transition: transform 0.3s ease;
+      text-align: center;
+    }
+
+    .led-card:hover { transform: translateY(-5px); }
+
+    .led-card h2 {
+      font-size: 1.5rem;
+      color: #1a1a2e;
+      margin-bottom: 20px;
+    }
+
+    /* --- ส่วน LDR Value --- */
+    .ldr-display {
+      font-size: 3.5rem;
+      font-weight: 800;
+      color: #f39c12;
+      margin: 10px 0;
+      text-shadow: 0 5px 15px rgba(243, 156, 18, 0.2);
+    }
+
+    .ldr-status-text {
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+    }
+
+    /* --- ปุ่มและสถานะ LED (เหมือนเดิม) --- */
+    .status-container { display: flex; align-items: center; justify-content: center; margin: 25px 0; gap: 15px; }
+    .status-light { width: 15px; height: 15px; border-radius: 50%; transition: all 0.3s ease; }
+    .status { font-size: 1.8rem; font-weight: 700; letter-spacing: 2px; }
+    .status.on { color: #4CAF50; }
+    .status.on + .status-light { background-color: #4CAF50; box-shadow: 0 0 20px #4CAF50; }
+    .status.off { color: #f44336; }
+    .status.off + .status-light { background-color: #f44336; box-shadow: 0 0 20px #f44336; }
+
+    .led-card button {
+      padding: 15px;
+      border: none;
+      border-radius: 50px;
+      color: white;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      width: 100%;
+      text-transform: uppercase;
+      transition: 0.3s;
+    }
+
+    .btn-on { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); }
+    .btn-off { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); }
+
+    /* --- ส่วนของหน้า Login (เหมือนเดิม) --- */
+    #loginForm {
+      max-width: 450px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 50px;
+      border-radius: 30px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      z-index: 1;
+    }
+
+    #loginForm h2 { margin-bottom: 30px; text-align: center; color: #1a1a2e; }
+    #loginForm input {
+      width: 100%;
+      padding: 15px;
+      margin: 10px 0;
+      border: 2px solid #eee;
+      border-radius: 12px;
+      outline: none;
+    }
+
+    #loginForm button {
+      width: 100%;
+      background: #1976D2;
+      color: white;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 20px;
+    }
+
+    #logoutBtn {
+      position: fixed; top: 20px; right: 20px;
+      padding: 10px 25px; border-radius: 50px;
+      background: rgba(0,0,0,0.5); color: white; border: 1px solid white;
+      cursor: pointer; z-index: 100;
+    }
+
+    footer { position: fixed; bottom: 20px; color: rgba(255,255,255,0.6); z-index: 1; }
+  </style>
+</head>
+<body>
+
+  <div id="loginForm">
+    <h2>🏠 LED Room Control</h2>
+    <input type="email" id="email" placeholder="Enter Email" required />
+    <input type="password" id="password" placeholder="Enter Password" required />
+    <button id="loginBtn">Login</button>
+  </div>
+
+  <div id="dashboard">
+    <h1 style="color: white; margin-bottom: 30px; font-weight: 300;">💡 SMART HOME CONTROL</h1>
+    
+    <div class="cards-container">
+      <div class="led-card">
+        <h2>Living Room LED</h2>
+        <div class="status-container">
+          <div class="status off" id="status1">OFF</div>
+          <div class="status-light"></div>
+        </div>
+        <button class="btn-off" id="btn1">Turn ON</button>
+      </div>
+
+      <div class="led-card">
+        <h2>Outdoor Light</h2>
+        <div class="ldr-display" id="ldrValue">----</div>
+        <div class="ldr-status-text" id="ldrStatus">Waiting...</div>
+        <p style="font-size: 0.8rem; color: #7f8c8d;">Threshold: 2000</p>
+      </div>
+    </div>
+
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <footer>Smart Home Miniproject0217</footer>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyADo5wyzjDa4-EPrltkqKAl5XkaE61b2U0",
+      authDomain: "miniproject0217-9d777.firebaseapp.com",
+      databaseURL: "https://miniproject0217-9d777-default-rtdb.firebaseio.com",
+      projectId: "miniproject0217-9d777",
+      storageBucket: "miniproject0217-9d777.firebasestorage.app",
+      messagingSenderId: "765735848587",
+      appId: "1:765735848587:web:e90d2db268b662bee0628e"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    const allowedEmail = "fxnggorr2009@gmail.com";
+    const allowedPassword = "miniproject0217";
+
+    const loginForm = document.getElementById("loginForm");
+    const dashboard = document.getElementById("dashboard");
+
+    // --- ระบบ Login เดิม ---
+    document.getElementById("loginBtn").onclick = () => {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if(email === allowedEmail && password === allowedPassword){
+        firebase.auth().signInWithEmailAndPassword(email, password)
+          .then(() => {
+            loginForm.style.display = "none";
+            dashboard.style.display = "flex";
+            startSmartHome();
+          })
+          .catch(error => alert("Firebase error: " + error.message));
+      } else {
+        alert("Invalid email or password.");
+      }
+    };
+
+    // --- ระบบ Dashboard (LED + LDR) ---
+    function startSmartHome() {
+      const db = firebase.database();
+      
+      // ควบคุม LED1
+      const statusText = document.getElementById("status1");
+      const toggleButton = document.getElementById("btn1");
+      const relayRef = db.ref("/led1");
+
+      relayRef.on("value", (snapshot) => {
+        const state = snapshot.val();
+        statusText.innerText = state ? "ON" : "OFF";
+        statusText.className = state ? "status on" : "status off";
+        toggleButton.innerText = state ? "Turn OFF" : "Turn ON";
+        toggleButton.className = state ? "btn-on" : "btn-off";
+      });
+
+      toggleButton.onclick = () => {
+        relayRef.get().then(snap => { relayRef.set(!snap.val()); });
+      };
+
+      // อ่านค่า LDR จาก Firebase (ที่ส่งมาจาก ESP32)
+      const ldrVal = document.getElementById("ldrValue");
+      const ldrStatus = document.getElementById("ldrStatus");
+      const ldrRef = db.ref("/ldr1");
+
+      ldrRef.on("value", (snapshot) => {
+        const val = snapshot.val() || 0;
+        ldrVal.innerText = val;
+        
+        // เช็คตาม Threshold 2000 ในบอร์ด
+        if (val > 2000) {
+          ldrStatus.innerText = "🌙 Night (Lights ON)";
+          ldrStatus.style.color = "#e74c3c";
+        } else {
+          ldrStatus.innerText = "☀️ Day (Lights OFF)";
+          ldrStatus.style.color = "#2ecc71";
+        }
+      });
+    }
+
+    document.getElementById("logoutBtn").onclick = () => {
+      firebase.auth().signOut().then(() => location.reload());
+    };
+  </script>
+</body>
+</html>
